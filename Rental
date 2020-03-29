@@ -1,0 +1,167 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
+public class MovieRentApp {
+	
+	final static String FILE = "Movie_Data.csv";
+
+	public static void main(String[] args) {
+		
+		Scanner input = new Scanner(System.in);
+		getInput(input);
+		menu(input);
+
+	}
+	
+	public static void getInput(Scanner in) {
+		
+		System.out.print("Enter your name: ");
+		String name = in.nextLine();
+		
+	}
+	
+	public static void menu(Scanner in) {
+		
+		int menu = 0;
+		
+		do {
+			if (menu != 1) {
+				System.out.println("1. Developers");
+				System.out.println("2. Search");
+				System.out.println("3. Rent");
+				System.out.println("4. Return");
+				System.out.println("5. Exit");
+			}
+			
+			menu = in.nextInt();
+			in.nextLine();
+			switch(menu) {
+				case 1: System.out.println("Chrissie\n");
+				break;
+				case 2: search(in);
+				break;
+				case 3: rent();
+				break;
+				case 4: returnMovie();
+				break;
+				case 5: System.out.println("Goodbye");
+				break;
+				default: System.out.println("Incorrect input.");
+			}
+		} while (menu != 5);
+		
+	}
+	
+	public static void search(Scanner in) {
+		
+		int menu;
+		
+		do {
+			System.out.println("Search by... ");
+			System.out.println("1. All available movies");
+			System.out.println("2. By genre");
+			System.out.println("3. by title");
+			System.out.println("4. Back");
+			
+			menu = in.nextInt();
+			in.nextLine();
+			switch(menu) {
+				case 1: showAll();
+				break;
+				case 2: genre();
+				break;
+				case 3: title();
+				break;
+				case 4: break;
+				default: System.out.println("Incorrect input.");
+			}
+		} while (menu != 4);
+		
+	}
+	
+	public static void showAll() {
+		
+		String data, title, price;
+		int comma;
+		int id = 0;
+		
+		try {
+			
+			File f = new File(FILE);
+			Scanner read = new Scanner(f);
+			while (read.hasNextLine()) {
+				data = read.nextLine();
+				comma = data.indexOf(",");
+				title = data.substring(comma+1);				
+				price = title.substring(title.lastIndexOf(",")+1);
+				title = title.substring(0, title.lastIndexOf(","));
+				System.out.printf("%4d | %-42s| %4s\n", id++, title, price);
+			}
+			read.close();
+		} catch (Exception e) {
+			System.out.println("There was an error: \n" + e.getMessage());
+		}
+		
+	}	
+	
+	public static void genre() {
+
+		Scanner read = new Scanner(System.in);
+		System.out.print("Enter the genre you would like: ");
+		String genre;
+		genre = read.nextLine();
+		read.close();
+		
+		File f = new File(FILE);
+		Scanner sc = null;
+
+		try {
+			sc = new Scanner(f);
+			while (sc.hasNextLine()) {
+				String input = sc.nextLine();
+				if (input.contains(genre)) {
+					System.out.println(input);
+				}
+			}
+			sc.close();
+		} catch (FileNotFoundException e) {
+				System.out.println("There was an error: \n" + e.getMessage());
+		}
+	}
+	
+	public static void title() {
+		
+		Scanner read = new Scanner(System.in);
+		System.out.print("Enter the name of the movie: ");
+		String movie;
+		movie = read.nextLine();
+		read.close();
+		
+		File f = new File(FILE);
+		Scanner sc = null;
+
+		try {
+			sc = new Scanner(f);
+			while (sc.hasNextLine()) {
+				String input = sc.nextLine();
+				if (input.contains(movie)) {
+					System.out.println(input);
+				}
+			}
+			sc.close();
+		} catch (FileNotFoundException e) {
+				System.out.println("There was an error: \n" + e.getMessage());
+		}
+	}
+	
+	public static void rent() {		
+		
+		
+	}
+	
+	public static void returnMovie() {
+		
+	}
+
+}
