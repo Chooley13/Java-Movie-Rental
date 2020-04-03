@@ -1,27 +1,161 @@
+import java.util.List;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.Scanner;
 
 public class MovieRentApp {
 	
 	final static String FILE = "Movie_Data.csv";
-
+	final static String RENTALS = "rentals.csv";
+	final static String RENTDATA = "rentData.csv";
+	final static int NUMMOVIES = 20;
+	
 	public static void main(String[] args) {
 		
 		Scanner input = new Scanner(System.in);
-		getInput(input);
-		menu(input);
+		File f = new File(RENTALS);
+		
+		if(!f.exists() && !f.isDirectory()) {
+			initRentals();
+		}
+		
+		String name = getInput(input);
+		menu(name, input);
 
 	}
 	
-	public static void getInput(Scanner in) {
+	// Initiate a log of all movies, whether they are rented, how many times they've been rented, as well
+	// as the date they were most recently rented/returned and by whom
+	public static void initRentals() {
+		
+		File f = new File(RENTALS);
+		FileWriter fw = null;
+		
+		System.out.println("First run.\nCreating rental log....");
+		
+		try {
+			fw = new FileWriter(f);
+			
+			fw.write("avail,rentals,name,date\n");
+			
+			for(int i = 0; i < NUMMOVIES; i++) {
+				fw.write("1,0,null,null\n");
+			}
+			fw.close();
+			
+		} catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+	}
+	// Get the user's name
+	public static String getInput(Scanner in) {
 		
 		System.out.print("Enter your name: ");
-		String name = in.nextLine();
+		return in.nextLine();
+			
+	}
+	
+	// Take the Movies CSV and put its lines into an ArrayList for use by other methods
+	// The first column(0) is the genre
+	// The second column(1) is the title
+	// The third column is(2) the rental fee
+	// (3) is available (0 if out, 1 if in)
+	// (4) is rental count
+	// (5) is name of last renter
+	// (6) is date last rented/returned
+	public static ArrayList<ArrayList<String>> readCSV() {
+		
+		// two dimensional arraylist to make the data into a table with coordinates
+		ArrayList<ArrayList<String>> arr = new ArrayList<ArrayList<String>>();
+		ArrayList<String> temp = new ArrayList<String>();
+		ArrayList<String> rentals = new ArrayList<String>();
+		String data, data2, genre, title, price, avail, rented, name, date;
+		int comma;
+		
+		try {
+			
+			File f = new File(FILE);
+			File f2 = new File(RENTALS);
+			Scanner read = new Scanner(f);
+			Scanner read2 = new Scanner(f2);
+			
+			while (read.hasNextLine()) {
+				temp.add(read.nextLine());
+			}
+			while (read2.hasNextLine()) {
+				rentals.add(read2.nextLine());
+			}
+			
+			read.close();
+			read2.close();
+			
+		} catch (Exception e) {
+			System.out.println("There was an error: \n" + e.getMessage());
+		}
+		
+		// Split our string arraylists into genre, title, fee, availability, rental count, name, date
+		for(int i = 0; i < temp.size(); i++) {
+			
+			ArrayList<String> temp2 = new ArrayList<String>();
+			
+			data = temp.get(i); // i'th string in the arraylist
+			
+			comma = data.indexOf(','); // Get the first comma in the string
+			
+			genre = data.substring(0, comma); // Get genre
+			
+			title = data.substring(comma+1); // Get title + fee
+			
+			price = title.substring(title.lastIndexOf(',')+1); // Get price
+			
+			title = title.substring(0, title.lastIndexOf(',')); // Cut price out of our current title string
+			
+			if(title.charAt(0) == '"') // Cut quotes out of titles
+				title = title.substring(1, title.length()-1);
+			
+			data2 = rentals.get(i); // start extracting from rentals.csv
+			
+			comma = data2.indexOf(','); // get the first comma
+			
+			avail = data2.substring(0, comma); // get the available boolean (0 for unavailable, 1 for available)
+			
+			date = data2.substring(data2.lastIndexOf(',')+1); // get the date it was last rented/returned
+			
+			rented = data2.substring(comma+1, data2.lastIndexOf(',')); // get the number of times the movie has been rented and the name of the last renter/returner
+			
+			name = rented.substring(rented.indexOf(',')+1); // cut out the name
+			
+			rented = rented.substring(0, rented.indexOf(',')); // cut out the rental count
+
+			temp2.add(genre); // Add Genre
+			
+			temp2.add(title); // Add Title
+			
+			temp2.add(price); // Add Fee
+			
+			temp2.add(avail); // Add available bit
+			
+			temp2.add(rented); // Add rental count
+			
+			temp2.add(name); // Add renter/returner name
+			
+			temp2.add(date); // Add date last rented/returned
+			
+			arr.add(temp2); // Add the "row" we just completed to our main arraylist
+			
+		}
+		
+		return arr;
 		
 	}
 	
-	public static void menu(Scanner in) {
+	// Print a menu allowing the user to search available movies, rent movies, or return rented movies
+	public static void menu(String name, Scanner in) {
 		
 		int menu = 0;
 		
@@ -31,26 +165,44 @@ public class MovieRentApp {
 				System.out.println("2. Search");
 				System.out.println("3. Rent");
 				System.out.println("4. Return");
-				System.out.println("5. Exit");
+				System.out.println("5. Earnings");
+				System.out.println("6. Exit");
 			}
 			
-			menu = in.nextInt();
-			in.nextLine();
+			menu = getIntInput(in, 1, 6);
+						
 			switch(menu) {
-				case 1: System.out.println("Chrissie\n");
+				case 1: System.out.println("Developers: Chrissie + Charles");
 				break;
 				case 2: search(in);
 				break;
-				case 3: rent();
+				case 3: rent(name, in);
 				break;
-				case 4: returnMovie();
+				case 4: returnMovie(name, in);
 				break;
-				case 5: System.out.println("Goodbye");
+				case 5: earnings();
 				break;
-				default: System.out.println("Incorrect input.");
+				case 6: System.out.println("Goodbye");
+				break;
 			}
-		} while (menu != 5);
+		} while (menu != 6);
 		
+	}
+	
+	public static void earnings() {
+		
+		ArrayList<ArrayList<String>> arr = readCSV();
+		double earnings;
+		double total = 0;
+		System.out.printf("%-42s | %s | %19s | %s\n", "Movie Title", "Rent Fee", "# of times borrowed", "Earnings");
+		for (int i = 1; i < arr.size(); i++) {
+			earnings = Double.parseDouble(arr.get(i).get(4)) * Double.parseDouble(arr.get(i).get(2).substring(1));
+			if (Integer.parseInt(arr.get(i).get(4)) != 0) {
+				System.out.printf("%-42s | %8s | %19d |    $%.2f\n", arr.get(i).get(1), arr.get(i).get(2), Integer.parseInt(arr.get(i).get(4)), earnings);
+				total += earnings;
+			}
+		}
+		System.out.printf("%n%80s $%.2f%n", "Total:     ", total);
 	}
 	
 	public static void search(Scanner in) {
@@ -61,106 +213,399 @@ public class MovieRentApp {
 			System.out.println("Search by... ");
 			System.out.println("1. All available movies");
 			System.out.println("2. By genre");
-			System.out.println("3. by title");
+			System.out.println("3. By title");
 			System.out.println("4. Back");
 			
-			menu = in.nextInt();
-			in.nextLine();
+			menu = getIntInput(in, 1, 4);
+			
 			switch(menu) {
 				case 1: showAll();
 				break;
-				case 2: genre();
+				case 2: searchByGenre(in);
 				break;
-				case 3: title();
+				case 3: searchByTitle(in);
 				break;
 				case 4: break;
-				default: System.out.println("Incorrect input.");
 			}
 		} while (menu != 4);
 		
 	}
 	
+	// Format and display all movies from our arraylist of movies
 	public static void showAll() {
 		
-		String data, title, price;
-		int comma;
-		int id = 0;
+		ArrayList<ArrayList<String>> arr = readCSV();
 		
-		try {
-			
-			File f = new File(FILE);
-			Scanner read = new Scanner(f);
-			while (read.hasNextLine()) {
-				data = read.nextLine();
-				comma = data.indexOf(",");
-				title = data.substring(comma+1);				
-				price = title.substring(title.lastIndexOf(",")+1);
-				title = title.substring(0, title.lastIndexOf(","));
-				System.out.printf("%4d | %-42s| %4s\n", id++, title, price);
-			}
-			read.close();
-		} catch (Exception e) {
-			System.out.println("There was an error: \n" + e.getMessage());
+		for(int i = 0; i < arr.size(); i++) {
+			if (i != 0)
+				System.out.printf("%4d | %-42s| %4s\n", i, arr.get(i).get(1), arr.get(i).get(2));
+			else if (arr.get(i).get(3).equals("1"))
+				System.out.printf(" ID# | %-42s| %4s\n", arr.get(i).get(1), arr.get(i).get(2));
 		}
-		
 	}	
 	
-	public static void genre() {
-
-		Scanner read = new Scanner(System.in);
+	// Search through our arraylist by genre
+	public static void searchByGenre(Scanner in) {
+		
+		ArrayList<ArrayList<String>> arr = readCSV();
+		
 		System.out.print("Enter the genre you would like: ");
-		String genre;
-		genre = read.nextLine();
-		read.close();
+		String genre = in.nextLine().toLowerCase();
 		
-		File f = new File(FILE);
-		Scanner sc = null;
+		if(genre.equals("scifi")) // mind the dash!
+			genre = "sci-fi";
 
-		try {
-			sc = new Scanner(f);
-			while (sc.hasNextLine()) {
-				String input = sc.nextLine();
-				if (input.contains(genre)) {
-					System.out.println(input);
+		boolean found = false;
+
+		for(int i = 0; i < arr.size(); i++) {
+			if (arr.get(i).get(0).toLowerCase().contains(genre)) {
+				if(arr.get(i).get(3).equals("1")) {
+					System.out.printf("%4d | %-42s| %4s\n", i, arr.get(i).get(1), arr.get(i).get(2));
+					found = true;
 				}
 			}
-			sc.close();
-		} catch (FileNotFoundException e) {
-				System.out.println("There was an error: \n" + e.getMessage());
+		}
+		if (!found)
+			System.out.println("No available movies were found for that genre.");
+	}
+	
+	// Search through our arraylist by title
+	public static void searchByTitle(Scanner in) {
+		
+		ArrayList<ArrayList<String>> arr = readCSV();
+		
+		System.out.print("Enter the title you would like: ");
+		String title = in.nextLine().toLowerCase();
+
+		boolean found = false;
+
+		for(int i = 0; i < arr.size(); i++) {
+			if (arr.get(i).get(1).toLowerCase().contains(title)) {
+				if(arr.get(i).get(3).equals("1")) {
+					System.out.printf("%4d | %-42s| %4s\n", i, arr.get(i).get(1), arr.get(i).get(2));
+					found = true;
+				}
+			}
+		}
+		if (!found)
+			System.out.println("No movies whose title contains \"" + title + "\" are available.");
+	}
+	
+	public static void rent(String name, Scanner in) {
+		
+		File data = new File(RENTDATA);
+		SimpleDateFormat date = new SimpleDateFormat("MMMM dd yyyy");
+		SimpleDateFormat time = new SimpleDateFormat("HH:mm");
+		Date rentDate = new Date();
+		Date rentTime = new Date();
+		boolean rent = true;
+		boolean owing = false;
+		boolean renting;
+		int id;
+		double rentFee = 0;
+		String yesno;
+		ArrayList<Integer> rentals = new ArrayList<Integer>();
+		ArrayList<String> renters = new ArrayList<String>();
+		Scanner fr = null;
+		ArrayList<ArrayList<String>> arr = readCSV();
+		
+		// Get a list of names of people who have movies they borrowed
+		if(data.exists()) {
+			try {
+				
+				fr = new Scanner(data);
+				while(fr.hasNextLine()) {
+					String tempStr = fr.nextLine();
+					renters.add(tempStr.substring(0, tempStr.indexOf(',')));
+				}
+				
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+			}
+			
+			// Check if current user has any borrowed movies
+			for(int i = 0; i < renters.size(); i++) {
+				if(renters.get(i).toLowerCase().equals(name.toLowerCase()))
+					owing = true;
+			}
+		}
+		
+		if(owing)
+			System.out.println("You have already rented some movies. Please return them before renting again.");
+		else {
+			do {
+				
+				renting = false;
+				
+				System.out.println("Enter the id number of the movie you want to rent: ");
+				id = getIntInput(in, 1, arr.size()-1);
+				
+				// Make sure they aren't trying to rent the same movie twice...
+				for(int i = 0; i < rentals.size(); i++) {
+					if (rentals.get(i) == id)
+						renting = true;
+				}
+				if (renting) {
+					System.out.println("You have already added that movie to your cart!");
+				} else {
+					// If its available, let them rent it
+					if(arr.get(id).get(3).equals("1")) {
+						System.out.println("\nYour chosen movie is:\n" + arr.get(id).get(1) + "\nRent fee is:\n" + arr.get(id).get(2) + "\n");
+						rentFee += Double.parseDouble(arr.get(id).get(2).substring(1));
+						rentals.add(id); 
+					} else { // Otherwise tell them who has it
+						System.out.println(arr.get(id).get(1) + " is currently unavailable.\nIt was last rented by " + arr.get(id).get(5) + " on " + arr.get(id).get(6) + ".");
+					}
+				}
+				System.out.print("Do you wish to rent another movie? (y/n): ");
+				yesno = in.nextLine();
+					
+				if (yesno.toLowerCase().equals("y"))
+					rent = true;
+				else
+					rent = false;
+				
+			} while (rent);
+			
+			System.out.println("\n" + date.format(rentDate) + " - " + time.format(rentTime));
+			System.out.printf("%-42s | %5s%n", "Movie title", "rent fee");
+			
+			for (int i = 0; i < rentals.size(); i++) {
+				System.out.printf("%-42s | %5s%n", arr.get(rentals.get(i)).get(1), arr.get(rentals.get(i)).get(2));
+			}
+			
+			System.out.printf("The total cost is $%4.2f\n", rentFee);
+			
+			writeRents(name, rentals);
+		}
+		
+	}
+	
+	public static void returnMovie(String name, Scanner in) {
+		
+		ArrayList<String> tempArr = new ArrayList<String>();
+		ArrayList<Integer> rented = new ArrayList<Integer>();
+		ArrayList<ArrayList<String>> arr = readCSV();
+		File data = new File(RENTDATA);
+		int n, comma, id;
+		boolean present = false;
+		
+		if (!data.exists()) {
+			System.out.println("There's nothing to return");
+		} else {
+			try {
+			Scanner read = new Scanner(data);
+			while (read.hasNextLine())
+				tempArr.add(read.nextLine());
+			read.close();
+			} catch (Exception e) {
+				System.out.print("That didn't work: ");				
+			}
+		}
+		
+		// For each row in the rentdata file
+		for (int i = 0; i < tempArr.size(); i++) {
+			// Check if that line has the user's name
+			if (tempArr.get(i).toLowerCase().contains(name.toLowerCase())) {
+				
+				present = true; // They have rented something...
+				
+				// Get the 3rd comma in the String
+
+				comma = -1;
+				n = 3;
+				
+				do {
+					comma = tempArr.get(i).indexOf(',', comma+1);
+					n--;
+				} while (n > 0 && comma != -1);
+				
+				// Get a list of the movies they rented in string form
+				String tempStr = tempArr.get(i).substring(comma+1);
+				// Turn that string into a proper list
+				List<String> tempList = Arrays.asList(tempStr.split(","));
+				
+				// Turn that list into an ArrayList of integers
+				for(int j = 0; j < tempList.size(); j++) {
+					if(Character.isDigit(tempList.get(j).charAt(0)));
+						rented.add(Integer.parseInt(tempList.get(j)));
+				}
+				
+				System.out.println("What movie would you like to return? (type the id number)");
+				
+				// Print each movie they have rented
+				for(int j = 0; j < rented.size(); j++)
+					System.out.println(rented.get(j) + " - " + arr.get(rented.get(j)).get(1));
+				
+				System.out.println();
+				
+				id = getIntInput(in, rented);
+				
+				// Remove the id of the movie they returned
+				for(int j = 0; j < rented.size(); j++) {
+					if(rented.get(j) == id) {
+						System.out.println("Successfully returned " + arr.get(rented.get(j)).get(1));
+						rented.remove(j);
+					}
+				}
+				
+				writeReturn(name, tempArr, rented, comma, i, id);
+				
+			}
+		}
+		
+		if (!present) {
+			System.out.println("You have no movies to return");
+		}
+		
+	}
+	
+	// Write the returned movie to our library and transaction files
+	public static void writeReturn(String name, ArrayList<String> tempArr, ArrayList<Integer> rented, int comma, int i, int id) {
+		
+		ArrayList<ArrayList<String>> arr = readCSV();
+		File data = new File(RENTDATA);
+		File lib = new File(RENTALS);
+		FileWriter fw = null;
+		FileWriter libfw = null;
+		
+		
+		// Write their remaining movies to file
+		// for each element in temparr
+		try {
+			fw = new FileWriter(data);
+			for (int j = 0; j < tempArr.size(); j++) {
+				
+				String origDateName = tempArr.get(i).substring(0, comma);
+			
+		// if it is not the i'th line, rewrite as is
+				if (j != i) {
+					fw.write(tempArr.get(j) + "\n");
+				} else { 									
+					// else if rented is not empty, rewrite their line with the current contents of rented, comma delineated
+					if (!rented.isEmpty()) {
+						
+						fw.write(origDateName + ",");
+						
+						for (int k = 0; k < rented.size(); k++) {
+							if (k != rented.size()-1)
+								fw.write(rented.get(k) + ",");
+							else
+								fw.write(rented.get(k) + "");
+						}
+						fw.write("\n");
+					}				
+				}
+			}
+			libfw = new FileWriter(lib);
+			for (int j = 0; j < arr.size(); j++) {
+				if (id == j) {
+					libfw.write("1," + arr.get(j).get(4) + "," + arr.get(j).get(5) + "," + arr.get(j).get(6) + "\n");
+				} else {
+					libfw.write(arr.get(j).get(3) + "," + arr.get(j).get(4) + "," + arr.get(j).get(5) + "," + arr.get(j).get(6) + "\n");
+				}
+			} 
+			fw.close();
+			libfw.close();
+		} catch (Exception e) {
+			System.out.println("Error writing to rentData");
 		}
 	}
 	
-	public static void title() {
+	// write the change in rented movies to our storage files
+	// TODO: Write to rentals.csv the changes in rented movies
+	public static void writeRents(String name, ArrayList<Integer> ids) {
 		
-		Scanner read = new Scanner(System.in);
-		System.out.print("Enter the name of the movie: ");
-		String movie;
-		movie = read.nextLine();
-		read.close();
+		File f = new File(RENTALS);
+		File data = new File(RENTDATA);
+		FileWriter fw = null;
+		FileWriter fwData = null;
+		SimpleDateFormat date = new SimpleDateFormat("MMMM dd yyyy");
+		SimpleDateFormat time = new SimpleDateFormat("HH:mm");
+		Date rentDate = new Date();
+		Date rentTime = new Date();
+		boolean write;
+		ArrayList<ArrayList<String>> arr = readCSV();
 		
-		File f = new File(FILE);
-		Scanner sc = null;
-
 		try {
-			sc = new Scanner(f);
-			while (sc.hasNextLine()) {
-				String input = sc.nextLine();
-				if (input.contains(movie)) {
-					System.out.println(input);
+			fw = new FileWriter(f); 
+			fwData = new FileWriter(data, true);
+			
+			fwData.append(name + "," + date.format(rentDate) + "," + time.format(rentTime) + ",");
+			for (int i = 0; i < ids.size(); i++) {
+				if (i != ids.size()-1)
+					fwData.append(ids.get(i) + ",");
+				else
+					fwData.append(ids.get(i) + "");
+			}
+			fwData.append("\n");
+			
+			for (int i = 0; i < arr.size(); i++) {
+				write = false;
+				for (int j = 0; j < ids.size(); j++) {
+					if (ids.get(j) == i) {
+						fw.write("0," + (Integer.parseInt(arr.get(i).get(4))+1) + "," + name + "," + date.format(rentDate) + "\n");
+						write = true;
+					}
+				}
+				if (!write) {
+					fw.write(arr.get(i).get(3) + "," + arr.get(i).get(4) + "," + arr.get(i).get(5) + "," + arr.get(i).get(6) + "\n");
 				}
 			}
-			sc.close();
-		} catch (FileNotFoundException e) {
-				System.out.println("There was an error: \n" + e.getMessage());
+			fw.close();
+			fwData.close();
+		} catch (Exception e) {
+			System.out.println("There was an error: " + e.getMessage());
 		}
 	}
 	
-	public static void rent() {		
+	// Input verification, gets user int input from min to max.
+	public static int getIntInput(Scanner in, int min, int max) {
 		
+		int i = min-1;
+		
+		do {
+			
+			if (in.hasNextInt())
+				i = in.nextInt();
+			
+			if(!(i >= min && i <= max))
+				System.out.println("Incorrect input, please enter a number from " + min + " to " + max + ".");
+			
+			in.nextLine();
+			
+		} while (i < min || i > max);
+		
+		return i;
 		
 	}
 	
-	public static void returnMovie() {
+	// Input verification, gets user int input that exists in arr
+	public static int getIntInput(Scanner in, ArrayList<Integer> arr) {
+		
+		int i = -1;
+		boolean valid = false;
+		
+		do {
+			
+			if (in.hasNextInt()) {
+				
+				i = in.nextInt();
+			
+				for(int j = 0; j < arr.size(); j++) {
+					if(i == arr.get(j))
+						valid = true;
+				}
+			}
+			
+			if(!valid)
+				System.out.println("Incorrect input, please enter a valid number.");
+			
+			in.nextLine();
+			
+		} while (!valid);
+		
+		return i;
 		
 	}
 
